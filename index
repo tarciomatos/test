@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Financeira Usina Solar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .input-group input {
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .header-cell {
+            background-color: #e5e7eb;
+        }
+        .payback-row {
+            background-color: #d1fae5;
+            font-weight: bold;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                background-color: #fff;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                max-width: none;
+            }
+            h1, p {
+                text-align: left;
+            }
+            table {
+                font-size: 10px;
+            }
+            .text-3xl { font-size: 1.5rem; }
+            .text-2xl { font-size: 1.2rem; }
+            .mb-6, .mb-8 { margin-bottom: 1rem; }
+            .gap-6 { gap: 1rem; }
+            .px-6 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="container mx-auto max-w-7xl bg-white rounded-xl shadow-lg p-8">
+        <div class="flex justify-between items-center mb-6 no-print">
+            <h1 class="text-3xl font-bold text-gray-800">Calculadora de Viabilidade Financeira</h1>
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300">
+                Imprimir Análise
+            </button>
+        </div>
+        <div class="print-only hidden">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Relatório de Viabilidade Financeira de Usina Solar</h1>
+            <p class="text-gray-600 text-sm">Gerado em: <span id="printDate"></span></p>
+            <p class="text-gray-600 mt-4 mb-4">Esta análise avalia a viabilidade financeira de uma usina de energia solar ao longo de 25 anos, com base nos dados fornecidos pelo usuário.</p>
+        </div>
+        <p class="text-center text-gray-600 mb-8 no-print">
+            Insira os dados da usina para realizar a análise completa de 25 anos.
+        </p>
+
+        <!-- Input Section -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 no-print">
+            <div class="input-group">
+                <label for="investimento" class="block text-sm font-medium text-gray-700">Investimento Inicial (R$)</label>
+                <input type="number" id="investimento" value="3000000" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="periodo" class="block text-sm font-medium text-gray-700">Período de Análise (Anos)</label>
+                <input type="number" id="periodo" value="25" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="producao" class="block text-sm font-medium text-gray-700">Produção Mensal (kWh)</label>
+                <input type="number" id="producao" value="120000" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="aluguel_kwh" class="block text-sm font-medium text-gray-700">Aluguel por kWh (R$)</label>
+                <input type="number" id="aluguel_kwh" value="0.50" step="0.01" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="custo_mensal" class="block text-sm font-medium text-gray-700">Custo Mensal (R$)</label>
+                <input type="number" id="custo_mensal" value="22000" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="reajuste" class="block text-sm font-medium text-gray-700">Reajuste Aluguel (%)</label>
+                <input type="number" id="reajuste" value="10" step="0.1" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="perda" class="block text-sm font-medium text-gray-700">Perda de Eficiência (%)</label>
+                <input type="number" id="perda" value="0.4" step="0.1" class="mt-1">
+            </div>
+            <div class="input-group">
+                <label for="tma" class="block text-sm font-medium text-gray-700">Taxa de Desconto (TMA) (%)</label>
+                <input type="number" id="tma" value="10" step="0.1" class="mt-1">
+            </div>
+        </div>
+
+        <!-- Financial Indicators Section -->
+        <div class="bg-blue-50 p-6 rounded-lg shadow-inner mb-8">
+            <h2 class="text-2xl font-bold text-blue-800 mb-4">Indicadores Financeiros</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Valor Presente Líquido (VPL)</p>
+                    <p id="vpl" class="text-2xl font-extrabold text-blue-600">R$ 0,00</p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Payback (Anos)</p>
+                    <p id="payback" class="text-2xl font-extrabold text-green-600">-</p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">ROI (Retorno sobre o Investimento)</p>
+                    <p id="roi" class="text-2xl font-extrabold text-purple-600">0.00%</p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">TIR (Taxa Interna de Retorno)</p>
+                    <p id="tir" class="text-2xl font-extrabold text-teal-600">0.00%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-bold text-gray-700 text-center mb-4">Projeção Anual de Lucros</h3>
+                <canvas id="profitChart"></canvas>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-bold text-gray-700 text-center mb-4">Fluxo de Caixa Acumulado</h3>
+                <canvas id="cumulativeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Analysis Table Section -->
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Análise Anual Detalhada</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ano</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produção Anual (kWh)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aluguel (R$/kWh)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receita Anual (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Custo Anual (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fluxo de Caixa Líquido (R$)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fluxo de Caixa Acumulado (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analysis-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Rows will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const investimentoInput = document.getElementById('investimento');
+        const periodoInput = document.getElementById('periodo');
+        const producaoInput = document.getElementById('producao');
+        const aluguelKwhInput = document.getElementById('aluguel_kwh');
+        const custoMensalInput = document.getElementById('custo_mensal');
+        const reajusteInput = document.getElementById('reajuste');
+        const perdaInput = document.getElementById('perda');
+        const tmaInput = document.getElementById('tma');
+        
+        const vplEl = document.getElementById('vpl');
+        const paybackEl = document.getElementById('payback');
+        const roiEl = document.getElementById('roi');
+        const tirEl = document.getElementById('tir');
+        const analysisBody = document.getElementById('analysis-body');
+        const printDateEl = document.getElementById('printDate');
+        
+        // Chart instances
+        let profitChart, cumulativeChart;
+
+        // Function to calculate Internal Rate of Return (TIR)
+        function irr(cashFlows, guess = 0.1) {
+            // Cash flow must have at least one positive and one negative number for TIR to be valid
+            const isNegative = cashFlows.some(cf => cf < 0);
+            const isPositive = cashFlows.some(cf => cf > 0);
+            if (!isNegative || !isPositive) {
+                return NaN;
+            }
+
+            // Newton-Raphson method for TIR calculation
+            const maxIterations = 1000;
+            const epsilon = 1e-7;
+
+            let rate = guess;
+            for (let i = 0; i < maxIterations; i++) {
+                let npv = 0;
+                let npvDerivative = 0;
+                for (let j = 0; j < cashFlows.length; j++) {
+                    npv += cashFlows[j] / Math.pow(1 + rate, j);
+                    npvDerivative -= (j * cashFlows[j]) / Math.pow(1 + rate, j + 1);
+                }
+
+                if (Math.abs(npv) < epsilon) {
+                    return rate;
+                }
+
+                rate = rate - npv / npvDerivative;
+            }
+
+            return NaN; // Return NaN if no solution is found
+        }
+        
+        // Main calculation function
+        function calculate() {
+            // Get values from inputs
+            let investimento = parseFloat(investimentoInput.value);
+            let periodo = parseInt(periodoInput.value);
+            let producaoMensal = parseFloat(producaoInput.value);
+            let aluguelKwh = parseFloat(aluguelKwhInput.value);
+            let custoMensal = parseFloat(custoMensalInput.value);
+            let reajuste = parseFloat(reajusteInput.value) / 100;
+            let perdaEficiencia = parseFloat(perdaInput.value) / 100;
+            let tma = parseFloat(tmaInput.value) / 100;
+            
+            // Clear previous results
+            analysisBody.innerHTML = '';
+            
+            // Initial calculations
+            let custoAnual = custoMensal * 12;
+            let vpl = 0;
+            let fluxoCaixaAcumulado = -investimento;
+            let paybackFound = false;
+
+            // Arrays for charts and TIR calculation
+            const anos = [];
+            const fluxosDeCaixaAnuais = [-investimento]; // Start with the initial investment
+            const fluxosDeCaixaAcumulados = [-investimento];
+            const receitasAnuais = [];
+            const custosAnuais = [];
+
+            // Loop through each year
+            for (let ano = 1; ano <= periodo; ano++) {
+                // Apply rent adjustment every 2 years starting from year 3
+                if (ano > 1 && (ano - 1) % 2 === 0) {
+                    aluguelKwh *= (1 + reajuste);
+                }
+
+                // Apply efficiency loss annually
+                if (ano > 1) {
+                    producaoMensal *= (1 - perdaEficiencia);
+                }
+
+                // Calculate annual values
+                let producaoAnual = producaoMensal * 12;
+                let receitaAnual = producaoAnual * aluguelKwh;
+                let fluxoCaixaAnual = receitaAnual - custoAnual;
+                
+                // Update cumulative cash flow
+                fluxoCaixaAcumulado += fluxoCaixaAnual;
+                
+                // Update VPL
+                vpl += fluxoCaixaAnual / Math.pow((1 + tma), ano);
+
+                // Add data to arrays
+                anos.push(ano);
+                fluxosDeCaixaAnuais.push(fluxoCaixaAnual);
+                fluxosDeCaixaAcumulados.push(fluxoCaixaAcumulado);
+                receitasAnuais.push(receitaAnual);
+                custosAnuais.push(custoAnual);
+
+                // Add row to the table
+                const row = analysisBody.insertRow();
+                let isPaybackYear = false;
+
+                // Check for payback year
+                if (fluxoCaixaAcumulado >= 0 && !paybackFound) {
+                    isPaybackYear = true;
+                    paybackFound = true;
+                }
+
+                if (isPaybackYear) {
+                    row.classList.add('payback-row');
+                    paybackEl.textContent = `Ano ${ano}`;
+                }
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${ano}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${producaoAnual.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">R$ ${aluguelKwh.toFixed(2).replace('.', ',')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">R$ ${receitaAnual.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">R$ ${custoAnual.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">R$ ${fluxoCaixaAnual.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">R$ ${fluxoCaixaAcumulado.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</td>
+                `;
+            }
+
+            // Display financial indicators
+            vplEl.textContent = `R$ ${vpl.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+            roiEl.textContent = `${((fluxoCaixaAcumulado + investimento) / investimento * 100).toFixed(2).replace('.', ',')}%`;
+
+            // Calculate TIR
+            const tir = irr(fluxosDeCaixaAnuais);
+            if (!isNaN(tir)) {
+                tirEl.textContent = `${(tir * 100).toFixed(2).replace('.', ',')}%`;
+            } else {
+                tirEl.textContent = 'Indefinida';
+            }
+
+            // Update print date
+            const today = new Date();
+            const dateString = today.toLocaleDateString('pt-BR');
+            printDateEl.textContent = dateString;
+
+            // Render charts
+            renderCharts(anos, receitasAnuais, custosAnuais, fluxosDeCaixaAcumulados);
+        }
+
+        function renderCharts(anos, receitas, custos, acumulado) {
+            // Destroy existing charts if they exist
+            if (profitChart) {
+                profitChart.destroy();
+            }
+            if (cumulativeChart) {
+                cumulativeChart.destroy();
+            }
+
+            const profitCtx = document.getElementById('profitChart').getContext('2d');
+            profitChart = new Chart(profitCtx, {
+                type: 'line',
+                data: {
+                    labels: anos.map(a => `Ano ${a}`),
+                    datasets: [
+                        {
+                            label: 'Receita Anual (R$)',
+                            data: receitas,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Custo Anual (R$)',
+                            data: custos,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const cumulativeCtx = document.getElementById('cumulativeChart').getContext('2d');
+            cumulativeChart = new Chart(cumulativeCtx, {
+                type: 'line',
+                data: {
+                    labels: [0].concat(anos).map(a => `Ano ${a}`),
+                    datasets: [
+                        {
+                            label: 'Fluxo de Caixa Acumulado (R$)',
+                            data: [parseFloat(investimentoInput.value)*-1].concat(acumulado.slice(1)), // The first value is the initial investment
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'R$ ' + context.parsed.y.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Add event listeners to all input fields
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+
+        // Initial calculation on page load
+        calculate();
+
+    </script>
+
+</body>
+</html>
